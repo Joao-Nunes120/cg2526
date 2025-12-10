@@ -24,7 +24,7 @@ state = {
     'camera_mode': 0,
     'cam_azim': 30.0,
     'cam_elev': 20.0,
-    'cam_dist': 2.5,
+    'cam_dist': 5,
     'show_help': True,
     'wheel_spin': 0.0,
     'wheel_rotation': 0.0
@@ -42,6 +42,7 @@ MOVE_STEP = 0.03
 TURN_FACTOR = 0.03
 STEER_STEP = 0.5
 WHEEL_SPIN_STEP = 4
+
 
 # ---------- Materials ----------
 MATERIALS = {
@@ -933,9 +934,47 @@ def place_wheel(x, y, z, radius, width, is_left, is_front):
    
 
     direction_correction = -1 if is_left else 1
-    spin_factor = 0.22 / radius
+    spin_factor = 0.24 / radius
+   
 
     spin_angle = direction_correction * (-state['wheel_spin'] * spin_factor)
+
+    glRotatef(spin_angle, 0, 0, 1)
+
+    draw_raw_wheel(radius, width)
+    glPopMatrix()
+
+
+def place_wheel_rear(x, y, z, radius, width, is_left, is_front):
+    glPushMatrix()
+    glTranslatef(x, y, z)
+
+    # -------------------------
+    # ACKERMANN STEERING
+    # -------------------------
+    if is_front:
+        base_angle = state['steer_angle']
+
+        if base_angle > 0:  # virar esquerda
+            steer = base_angle * (1.20 if is_left else 0.80)
+        elif base_angle < 0:  # virar direita
+            steer = base_angle * (0.80 if is_left else 1.20)
+        else:
+            steer = 0
+
+        glRotatef(-steer, 0, 1, 0)
+
+    if is_left:
+        glRotatef(-90, 0, 1, 0)
+    else:
+        glRotatef(90, 0, 1, 0)
+   
+
+    direction_correction = -1 if is_left else 1
+    
+    spin_factor_rear = 0.24 / radius 
+
+    spin_angle = direction_correction * (-state['wheel_spin'] * spin_factor_rear)
 
     glRotatef(spin_angle, 0, 0, 1)
 
@@ -1850,13 +1889,13 @@ def draw_rear_wheels():
     radius_rear = 0.24
     width_rear  = 0.20
 
-    wheel_y_rear = wheel_y_front + (radius_front - radius_rear)   
+    wheel_y_rear = wheel_y_front + (radius_front - radius_rear)
 
     wheel_x = 0.77
     wheel_z = -1.25
 
-    place_wheel(-wheel_x, wheel_y_rear, wheel_z, radius_rear, width_rear, True,  False)  # trás esquerda
-    place_wheel(+wheel_x, wheel_y_rear, wheel_z, radius_rear, width_rear, False, False)  # trás direita
+    place_wheel_rear(-wheel_x, wheel_y_rear, wheel_z, radius_rear, width_rear, True,  False)  # trás esquerda
+    place_wheel_rear(+wheel_x, wheel_y_rear, wheel_z, radius_rear, width_rear, False, False)  # trás direita
 
 
 def draw_rear_triangle_piece():
@@ -2321,7 +2360,7 @@ def idle():
     # ---- andar para trás ----
     if keys['s']:
         steering_rad = math.radians(state['steer_angle'])
-        state['car_heading'] -= math.degrees(math.sin(steering_rad) * TURN_FACTOR)
+        state['car_heading'] -= math.degrees(math.sin(-steering_rad) * TURN_FACTOR)
 
         heading = math.radians(state['car_heading'])
 
@@ -2370,7 +2409,6 @@ def main():
 
 if __name__ == '__main__':
     main()
-
 
 
 
